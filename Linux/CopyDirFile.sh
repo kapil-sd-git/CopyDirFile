@@ -145,7 +145,7 @@ help_function ()
 This is HELP page of program CopyDirFile.
 
 CopyDirFile is used to create tasks for copying files or folders to a given location every specified time period.
-The program can be operated using the menu (type: \"$SCRIPT_NAME\") or by using commands whose syntax is as follows:
+The program can be operated using commands whose syntax is as follows:
 
   add <source> <destination> <refresh_time> [<two_directions>]  - creates a new copy task
   show <all|running|task_ID>  - displays a list of created copy tasks
