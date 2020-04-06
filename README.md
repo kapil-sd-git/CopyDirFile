@@ -79,7 +79,7 @@ PROCESS ID   ID  SOURCE                                    DESTINATION          
 [INFO] Running task 1 with process ID 2890 has been stopped
   ```
   
-  Copy jobs that are not running can be deleted completely by typing its ID:
+  Copy tasks that are not running can be deleted completely by typing its ID:
   
   ```sh
   $ ./CopyDirFile.sh del 1
