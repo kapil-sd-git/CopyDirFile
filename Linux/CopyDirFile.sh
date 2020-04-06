@@ -25,7 +25,7 @@ SCRIPT_NAME="$( basename $0 )"
 SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
 FILE_TASKS_RUNNING="$( realpath ~/.CopyDirFile_running.tasks )"
-FILE_TASKS_LOGS_DIR="$( realpath ~/. )/CopyDirFile_Logs"
+FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 
 if [[ ! -d "$FILE_TASKS_LOGS_DIR" ]]; then
   mkdir "$FILE_TASKS_LOGS_DIR"
@@ -302,8 +302,8 @@ show_function ()
     exit 7
   fi
 
-  DIVIDER="=================================="
-  DIVIDER=$DIVIDER$DIVIDER$DIVIDER$DIVIDER
+  DIVIDER="================================="
+  DIVIDER=$DIVIDER$DIVIDER$DIVIDER$DIVIDER$DIVIDER
   if [[ "$2" =~ ^running$ ]]; then
     printf "\n%10s  %3s  %-40s  %-40s  %7s  %13s\n" "PROCESS ID" "ID" "SOURCE" "DESTINATION" "REFRESH" "TWO DIRECTION"
     printf "%-123.123s\n" "$DIVIDER"
