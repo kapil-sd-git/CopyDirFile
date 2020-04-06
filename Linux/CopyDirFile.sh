@@ -12,7 +12,6 @@
 # 
 #  This script is created in spare time and may contain bugs or be underdeveloped.
 #  If you found any bugs that I could miss or you would like to give advice, I would be grateful for this information.
-# 
 #################
 
 VERSION="1.0"
