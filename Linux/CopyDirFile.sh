@@ -144,7 +144,7 @@ help_function ()
   echo "
 This is HELP page of program CopyDirFile.
 
-CopyDirFile is used to create tasks for copying files or folders to a given location every specified time period.
+CopyDirFile is used to create copy tasks for copying files or folders to a given location every specified time period.
 The program can be operated using commands whose syntax is as follows:
 
   add <source> <destination> <refresh_time> [<two_directions>]  - creates a new copy task
