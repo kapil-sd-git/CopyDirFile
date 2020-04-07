@@ -12,19 +12,37 @@
 # 
 #  This script is created in spare time and may contain bugs or be underdeveloped.
 #  If you found any bugs that I could miss or you would like to give advice, I would be grateful for this information.
+# 
 #################
 
-VERSION="1.0"
-
+#################
+# BEGINNING OF CONFIGURATION VARIABLES
+# 
 # Set CHECK_IF_DESTINATION_EXISTS value to "false" if you do not want to check that the destination path exists
 # Default: CHECK_IF_DESTINATION_EXISTS=true
 CHECK_IF_DESTINATION_EXISTS=true
 
-SCRIPT_NAME="$( basename $0 )"
-SCRIPT_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+# Stores the location of the file containing the list of copy tasks
+# Default: FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
 FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
+
+# Location of the file containing the list of currently running copy tasks
+# Default: FILE_TASKS_RUNNING="$( realpath ~/.CopyDirFile_running.tasks )"
 FILE_TASKS_RUNNING="$( realpath ~/.CopyDirFile_running.tasks )"
+
+# Location and name of the folder in which logs of running copy tasks will be created
+# Default: FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
+# 
+# END OF CONFIGURATION VARIABLES
+#################
+
+# Variable that stores name of this current script
+# Default: SCRIPT_NAME="$( basename $0 )"
+SCRIPT_NAME="$( basename $0 )"
+
+
+VERSION="1.01"
 
 if [[ ! -d "$FILE_TASKS_LOGS_DIR" ]]; then
   mkdir "$FILE_TASKS_LOGS_DIR"
@@ -237,7 +255,7 @@ add_function ()
   for (( i=0; i<$NUMBER; i++ ))
   do
     if [[ "$SOURCE_PATH" == "${TASKS[$((i*5+1))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$((i*5+2))]}" ]]; then
-      echo "[ERROR] Task with the given paths already exists!"
+      echo "[ERROR] Copy task with the given paths already exists!"
       exit 5
     fi
 
@@ -257,9 +275,10 @@ add_function ()
   echo "${TASKS[$(($NUMBER*5))]} \"${TASKS[$(($NUMBER*5+1))]}\" \"${TASKS[$(($NUMBER*5+2))]}\" ${TASKS[$(($NUMBER*5+3))]} ${TASKS[$(($NUMBER*5+4))]}" >> "$FILE_TASKS"
 
   if [ $? ]; then 
-    echo "[INFO] New task created with ID: $MAXIMUM"
+    echo "[INFO] New copy task created with ID: $MAXIMUM"
   else
-    echo "[ERROR] An error occurred while adding task!"
+    echo "[ERROR] An error occurred while adding copy task to file!"
+    exit 6
   fi
 }
 
@@ -288,8 +307,8 @@ show_function ()
           if [[ "$FOUND" == "true" ]]; then
             ERROR=false
           else
-            echo "[ERROR] Entered task ID does not exist!"
-            exit 6
+            echo "[ERROR] Copy task with given ID does not exist!"
+            exit 7
           fi
         fi
       fi
@@ -298,7 +317,7 @@ show_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_SHOW"
-    exit 7
+    exit 8
   fi
 
   DIVIDER="================================="
@@ -344,12 +363,12 @@ del_function ()
     if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
       if [[ "$2" =~ ^all$ ]]; then
         SURE="n"
-        read -p "Are you sure you want to delete all tasks? [y/n] " SURE
+        read -p "Are you sure you want to delete all copy tasks? [y/n] " SURE
         if [[ "$SURE" =~ ^y$ ]]; then
           ERROR=false
         else
           echo "[ERROR] Operation canceled"
-          exit 8
+          exit 9
         fi
       else
         if [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
@@ -364,8 +383,8 @@ del_function ()
           if [[ "$FOUND" == "true" ]]; then
             ERROR=false
           else
-            echo "[ERROR] Entered task ID does not exist!"
-            exit 9
+            echo "[ERROR] Copy task with given ID does not exist!"
+            exit 10
           fi
         fi
       fi
@@ -374,7 +393,7 @@ del_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_DEL"
-    exit 10
+    exit 11
   fi
 
   > "$FILE_TASKS"
@@ -393,7 +412,7 @@ del_function ()
       fi
     done
     if [[ "$FOUND" == true ]]; then
-      echo "[ERROR] Task with ID $TASK_ID can not be deleted because is already running!"
+      echo "[ERROR] Copy task with ID $TASK_ID can not be deleted because is already running!"
       PROBLEM=true
     else
       if [[ "$2" == "$TASK_ID" ]]; then
@@ -408,16 +427,16 @@ del_function ()
         TASKS=( "${TASKS[@]:0:$(($i*5))}" "${TASKS[@]:$(($i*5+5))}" )
       fi
       let i--
-      echo "[INFO] Task with ID $TASK_ID deleted"
+      echo "[INFO] Deleted copy task with ID: $TASK_ID"
     else
       echo "${TASKS[$(($i*5))]} \"${TASKS[$(($i*5+1))]}\" \"${TASKS[$(($i*5+2))]}\" ${TASKS[$(($i*5+3))]} ${TASKS[$(($i*5+4))]}" >> "$FILE_TASKS"
     fi
   done
   if [[ "$PROBLEM" == true ]]; then
-    exit 11
+    exit 12
   fi
   if [[ "$2" =~ ^[0-9]{1,3}$ ]] && [[ "$REMOVED" == false ]]; then
-    exit 12
+    exit 13
   fi
 }
 
@@ -446,7 +465,13 @@ create_new_task ()
   TASK_PROCESS_ID=$!
   RUNNING_TASKS+=( "$TASK_PROCESS_ID" "$1" )
   echo "$TASK_PROCESS_ID $1" >> "$FILE_TASKS_RUNNING"
-  echo "[INFO] Task with ID $1 started with process ID: $TASK_PROCESS_ID"
+
+  if [ $? ]; then 
+    echo "[INFO] Copy task with ID $1 started with process ID: $TASK_PROCESS_ID"
+  else
+    echo "[ERROR] An error occurred while adding a running task job to a file containing a list of running copy tasks!"
+    exit 14
+  fi
 }
 
 start_function ()
@@ -473,8 +498,8 @@ start_function ()
         if [[ "$FOUND" == "true" ]]; then
           ERROR=false
         else
-          echo "[ERROR] Entered task ID does not exist!"
-          exit 13
+          echo "[ERROR] Copy task with given ID does not exist!"
+          exit 15
         fi
       fi
     fi
@@ -482,7 +507,7 @@ start_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_START"
-    exit 14
+    exit 16
   fi
 
   for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
@@ -500,9 +525,9 @@ start_function ()
         done
       fi
       if [[ "$FOUND" == true ]]; then
-        echo "[ERROR] Task with ID $TASK_ID is already running!"
+        echo "[ERROR] Copy task with ID $TASK_ID is already running!"
         if [[ "$2" == "$TASK_ID" ]]; then
-          exit 15
+          exit 17
         fi
       else
         create_new_task "$TASK_ID" "$i"
@@ -539,8 +564,8 @@ stop_function ()
           if [[ "$FOUND" == "true" ]]; then
             ERROR=false
           else
-            echo "[ERROR] The entered task ID is not currently running or does not exist!"
-            exit 16
+            echo "[ERROR] The entered copy task ID is not currently running or does not exist!"
+            exit 18
           fi
         fi
       fi
@@ -549,7 +574,7 @@ stop_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_STOP"
-    exit 17
+    exit 19
   fi
 
   > "$FILE_TASKS_RUNNING"
@@ -565,7 +590,7 @@ stop_function ()
       kill $PROCESS_ID
 
       if [ $? ]; then
-        echo "[INFO] Running task $TASK_ID with process ID $PROCESS_ID has been stopped"
+        echo "[INFO] Running copy task $TASK_ID with process ID $PROCESS_ID has been stopped"
         if [ "$i" -eq "0" ]; then
           RUNNING_TASKS=( "${RUNNING_TASKS[@]:$(($i*2+2))}" )
         else
@@ -583,7 +608,7 @@ stop_function ()
   done
 
   if [[ "$PROBLEM" == true ]]; then
-    exit 18
+    exit 20
   fi
 }
 
