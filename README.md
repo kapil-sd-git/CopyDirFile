@@ -29,21 +29,21 @@
   
 ## Code Examples
 
-  To create a new task of copying a file to the specified folder every 5 seconds, you can do it this way:
+  To create a new copy task of copying a file to the specified folder every 5 seconds, you can do it this way:
   
   ```sh
   $ ./CopyDirFile.sh add /source/file.txt /destination/folder/. 5s
-  [INFO] New task created with ID: 1
+  [INFO] New copy task created with ID: 1
   ```
 
   If you want to create new copy task to copy every 5 minutes in two directions (from source folder to destination folder and vice versa) you need to type the optional *two_directions* argument as `true` at the end of the `add` command:
   
   ```sh
   $ ./CopyDirFile.sh add "/type/source folder/." "/type/destination folder/." 5m true
-  [INFO] New task created with ID: 2
+  [INFO] New copy task created with ID: 2
   ```
   
-  To display only a specific task, type its ID:
+  To display only a specific copy task, type its ID:
   
   ```sh
   $ ./CopyDirFile.sh show 1
@@ -58,7 +58,7 @@
   
   ```sh
   $ ./CopyDirFile.sh start 1
-  [INFO] Task with ID 1 started with process ID: 2890
+  [INFO] Copy task with ID 1 started with process ID: 2890
   ```
   
   To view a list of running copy tasks, type:
@@ -76,12 +76,12 @@ PROCESS ID   ID  SOURCE                                    DESTINATION          
   
   ```sh
   $ ./CopyDirFile.sh stop 1
-[INFO] Running task 1 with process ID 2890 has been stopped
+[INFO] Running copy task 1 with process ID 2890 has been stopped
   ```
   
   Copy tasks that are not running can be deleted completely by typing its ID:
   
   ```sh
   $ ./CopyDirFile.sh del 1
-[INFO] Task with ID 1 deleted
+[INFO] Deleted copy task with ID: 1
   ```
