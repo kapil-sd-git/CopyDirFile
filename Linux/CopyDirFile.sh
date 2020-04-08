@@ -317,7 +317,7 @@ add_function ()
             echo "[ERROR] One of the paths is invalid!"
           fi
         else
-          echo "[ERROR] In mirror task the destination and source CAN NOT BE FILE!"
+          echo "[ERROR] In mirror task the destination and/or source CAN NOT BE FILE!"
           exit 4
         fi
       fi
@@ -348,7 +348,7 @@ add_function ()
   local MAXIMUM=0
   for (( i=0; i<$NUMBER; i++ ))
   do
-    if [[ "$SOURCE_PATH" == "${TASKS[$((i*6+2))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$((i*6+3))]}" ]]; then
+    if [[ "$SOURCE_PATH" == "${TASKS[$(($i*6+2))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$(($i*6+3))]}" ]]; then
       echo "[ERROR] Task with the given paths already exists!"
       exit 5
     fi
@@ -391,7 +391,7 @@ show_function ()
       echo "$USAGE_SHOW"
       exit 0
     fi
-    if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^running$ ]] || [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
+    if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^running$ ]] || [[ "$2" =~ ^[0-9]+$ ]]; then
       if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^running$ ]]; then
         if [ "$#" -eq "2" ] || ([ "$#" -eq "3" ] && [[ "$3" =~ ^copy$ || "$3" =~ ^mirror$ ]]); then
           ERROR=false
@@ -401,7 +401,7 @@ show_function ()
           local FOUND=false
           for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
-            if [[ "$2" == "${TASKS[$((i*6))]}" ]]; then
+            if [[ "$2" == "${TASKS[$(($i*6))]}" ]]; then
               FOUND=true
             fi
           done
@@ -433,9 +433,9 @@ show_function ()
       if [ "${#RUNNING_TASKS[@]}" -gt "0" ]; then
         for (( j=0; j<$((${#RUNNING_TASKS[@]}/2)); j++ ))
         do
-          if [ "${TASKS[$((i*6))]}" -eq "${RUNNING_TASKS[$((j*2+1))]}" ]; then
-            if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
-              printf "%3s  %10s  %6s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$((i*6))]}" "${RUNNING_TASKS[$((j*2))]}" "${TASKS[$((i*6+1))]}" "${TASKS[$((i*6+2))]}" "${TASKS[$((i*6+3))]}" "${TASKS[$((i*6+4))]}" "${TASKS[$((i*6+5))]}"
+          if [ "${TASKS[$((i*6))]}" -eq "${RUNNING_TASKS[$(($j*2+1))]}" ]; then
+            if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$(($i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+              printf "%3s  %10s  %6s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$(($i*6))]}" "${RUNNING_TASKS[$(($j*2))]}" "${TASKS[$(($i*6+1))]}" "${TASKS[$(($i*6+2))]}" "${TASKS[$(($i*6+3))]}" "${TASKS[$(($i*6+4))]}" "${TASKS[$(($i*6+5))]}"
             fi
             break
           fi
@@ -448,9 +448,9 @@ show_function ()
 
     for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
     do
-      if [[ "$2" =~ ^all$ || "$2" == "${TASKS[$((i*6))]}" ]]; then
-        if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
-          printf "%3s  %6s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$((i*6))]}" "${TASKS[$((i*6+1))]}" "${TASKS[$((i*6+2))]}" "${TASKS[$((i*6+3))]}" "${TASKS[$((i*6+4))]}" "${TASKS[$((i*6+5))]}"
+      if [[ "$2" =~ ^all$ || "$2" == "${TASKS[$(($i*6))]}" ]]; then
+        if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$(($i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+          printf "%3s  %6s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$(($i*6))]}" "${TASKS[$(($i*6+1))]}" "${TASKS[$(($i*6+2))]}" "${TASKS[$(($i*6+3))]}" "${TASKS[$(($i*6+4))]}" "${TASKS[$(($i*6+5))]}"
         fi
       fi
     done
@@ -468,7 +468,7 @@ del_function ()
       echo "$USAGE_DEL"
       exit 0
     fi
-    if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
+    if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]+$ ]]; then
       if [[ "$2" =~ ^all$ ]]; then
         if [ "$#" -eq "2" ] || ([ "$#" -eq "3" ] && [[ "$3" =~ ^copy$ || "$3" =~ ^mirror$ ]]); then
           local SURE="n"
@@ -488,7 +488,7 @@ del_function ()
           local FOUND=false
           for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
-            if [ "$2" -eq "${TASKS[$((i*6))]}" ]; then
+            if [ "$2" -eq "${TASKS[$(($i*6))]}" ]; then
               FOUND=true
             fi
           done
@@ -550,7 +550,7 @@ del_function ()
   if [[ "$PROBLEM" == true ]]; then
     exit 12
   fi
-  if [[ "$2" =~ ^[0-9]{1,3}$ ]] && [[ "$REMOVED" == false ]]; then
+  if [[ "$2" =~ ^[0-9]+$ ]] && [[ "$REMOVED" == false ]]; then
     exit 13
   fi
 }
@@ -610,7 +610,7 @@ start_function ()
           local FOUND=false
           for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
-            if [[ "$2" == "${TASKS[$((i*6))]}" ]]; then
+            if [[ "$2" == "${TASKS[$(($i*6))]}" ]]; then
               FOUND=true
             fi
           done
@@ -636,11 +636,11 @@ start_function ()
     local TASK_ID=${TASKS[$((i*6))]}
     local FOUND=false
     if [[ "$2" =~ ^all$ ]] || [[ "$2" == "$TASK_ID" ]]; then
-      if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+      if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$(($i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
         if [ "${#RUNNING_TASKS[@]}" -gt "0" ]; then
           for (( j=0; j<$((${#RUNNING_TASKS[@]}/2)); j++ ))
           do
-            if [ "$TASK_ID" -eq "${RUNNING_TASKS[$((j*2+1))]}" ]; then
+            if [ "$TASK_ID" -eq "${RUNNING_TASKS[$(($j*2+1))]}" ]; then
               FOUND=true
               break
             fi
@@ -653,7 +653,7 @@ start_function ()
             exit 17
           fi
         else
-          # create_new_task "$TASK_ID" "$i"
+          create_new_task "$TASK_ID" "$i"
           if [[ "$2" == "$TASK_ID" ]]; then
             exit 0
           fi
@@ -667,20 +667,22 @@ stop_function ()
 {
   local ERROR=true
 
-  if [ "$#" -eq "2" ]; then
-    if [[ "$2" == "--help" ]] || [[ "$2" == "-help" ]] || [[ "$2" == "help" ]]; then
+  if [ "$#" -eq "2" ] || [ "$#" -eq "3" ]; then
+    if [[ "$2" == "--help" || "$2" == "-help" || "$2" == "help" ]] && [ "$#" -eq "2" ]; then
       echo "$USAGE_STOP"
       exit 0
     fi
-    if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
+    if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]+$ ]]; then
       if [[ "$2" =~ ^all$ ]]; then
-        ERROR=false
+        if [ "$#" -eq "2" ] || ([ "$#" -eq "3" ] && [[ "$3" =~ ^copy$ || "$3" =~ ^mirror$ ]]); then
+          ERROR=false
+        fi
       else
-        if [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
+        if [ "$#" -eq "2" ]; then
           local FOUND=false
           for (( i=0; i<$((${#RUNNING_TASKS[@]}/2)); i++ ))
           do
-            if [ "$2" -eq "${RUNNING_TASKS[$((i*2+1))]}" ]; then
+            if [ "$2" -eq "${RUNNING_TASKS[$(($i*2+1))]}" ]; then
               FOUND=true
             fi
           done
@@ -688,7 +690,7 @@ stop_function ()
           if [[ "$FOUND" == "true" ]]; then
             ERROR=false
           else
-            echo "[ERROR] The entered copy task ID is not currently running or does not exist!"
+            echo "[ERROR] The entered task ID is not currently running or does not exist!"
             exit 18
           fi
         fi
@@ -709,23 +711,36 @@ stop_function ()
   do
     PROCESS_ID=${RUNNING_TASKS[$(($i*2))]}
     TASK_ID=${RUNNING_TASKS[$(($i*2+1))]}
+    local TASK_TYPE=""
 
     if [[ "$2" == "$TASK_ID" ]] || [[ "$2" =~ ^all$ ]]; then
-      kill $PROCESS_ID
+      for (( j=0; j<$((${#TASKS[@]}/6)); j++ ))
+      do
+        if [[ "${RUNNING_TASKS[$(($i*2+1))]}" == "${TASKS[$(($j*6))]}" ]]; then
+          if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$(($j*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+            TASK_TYPE=" ${TASKS[$(($2*6+1))]}"
 
-      if [ $? ]; then
-        echo "[INFO] Running copy task $TASK_ID with process ID $PROCESS_ID has been stopped"
-        if [ "$i" -eq "0" ]; then
-          RUNNING_TASKS=( "${RUNNING_TASKS[@]:$(($i*2+2))}" )
-        else
-          RUNNING_TASKS=( "${RUNNING_TASKS[@]:0:$(($i*2))}" "${RUNNING_TASKS[@]:$(($i*2+2))}" )
+            kill $PROCESS_ID
+
+            if [ $? ]; then
+              echo "[INFO] Running$TASK_TYPE task ID $TASK_ID with process ID $PROCESS_ID has been stopped"
+              if [ "$i" -eq "0" ]; then
+                RUNNING_TASKS=( "${RUNNING_TASKS[@]:$(($i*2+2))}" )
+              else
+                RUNNING_TASKS=( "${RUNNING_TASKS[@]:0:$(($i*2))}" "${RUNNING_TASKS[@]:$(($i*2+2))}" )
+              fi
+              let i--
+            else
+              echo "[ERROR] An error occurred closing the$TASK_TYPE task ID $TASK_ID with the given process ID $PROCESS_ID!"
+              echo "$PROCESS_ID $TASK_ID" >> "$FILE_TASKS_RUNNING"
+              PROBLEM=true
+            fi
+          else
+            echo "$PROCESS_ID $TASK_ID" >> "$FILE_TASKS_RUNNING"
+          fi
+          break
         fi
-        let i--
-      else
-        echo "[ERROR] An error occurred closing the copy task $TASK_ID with the given process ID $PROCESS_ID!"
-        echo "$PROCESS_ID $TASK_ID" >> "$FILE_TASKS_RUNNING"
-        PROBLEM=true
-      fi
+      done
     else
       echo "$PROCESS_ID $TASK_ID" >> "$FILE_TASKS_RUNNING"
     fi
