@@ -77,6 +77,11 @@ if test -f "$FILE_TASKS_RUNNING" ; then
   do
     echo "${RUNNING_TASKS[$(($i*2))]} ${RUNNING_TASKS[$(($i*2+1))]}" >> "$FILE_TASKS_RUNNING"
   done
+
+  if [ "$((${#RUNNING_TASKS[@]}%2))" -gt "0" ]; then
+    echo "[ERROR] An error was found in the number of parameters in the file containing the running tasks!"
+    exit 3
+  fi
 fi
 
 USAGE_ADD="
@@ -404,7 +409,7 @@ show_function ()
           if [[ "$FOUND" == "true" ]]; then
             ERROR=false
           else
-            echo "[ERROR] Copy task with given ID does not exist!"
+            echo "[ERROR] Task with given ID does not exist!"
             exit 7
           fi
         fi
@@ -456,28 +461,34 @@ show_function ()
 del_function ()
 {
   local ERROR=true
+  local TASK_TYPE=""
 
-  if [ "$#" -eq "2" ]; then
-    if [[ "$2" == "--help" ]] || [[ "$2" == "-help" ]] || [[ "$2" == "help" ]]; then
+  if [ "$#" -eq "2" ] || [ "$#" -eq "3" ]; then
+    if [[ "$2" == "--help" || "$2" == "-help" || "$2" == "help" ]] && [ "$#" -eq "2" ]; then
       echo "$USAGE_DEL"
       exit 0
     fi
     if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
       if [[ "$2" =~ ^all$ ]]; then
-        SURE="n"
-        read -p "Are you sure you want to delete all copy tasks? [y/n] " SURE
-        if [[ "$SURE" =~ ^y$ ]]; then
-          ERROR=false
-        else
-          echo "[ERROR] Operation canceled"
-          exit 9
+        if [ "$#" -eq "2" ] || ([ "$#" -eq "3" ] && [[ "$3" =~ ^copy$ || "$3" =~ ^mirror$ ]]); then
+          local SURE="n"
+          if [ "$#" -eq "3" ]; then
+            TASK_TYPE=" $3"
+          fi
+          read -p "Are you sure you want to delete all$TASK_TYPE tasks? [y/n] " SURE
+          if [[ "$SURE" =~ ^y$ ]]; then
+            ERROR=false
+          else
+            echo "[ERROR] Operation canceled"
+            exit 9
+          fi
         fi
       else
-        if [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
+        if [[ "$2" =~ ^[0-9]{1,3}$ ]] && [ "$#" -eq "2" ]; then
           local FOUND=false
-          for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
+          for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
-            if [ "$2" -eq "${TASKS[$((i*5))]}" ]; then
+            if [ "$2" -eq "${TASKS[$((i*6))]}" ]; then
               FOUND=true
             fi
           done
@@ -485,7 +496,7 @@ del_function ()
           if [[ "$FOUND" == "true" ]]; then
             ERROR=false
           else
-            echo "[ERROR] Copy task with given ID does not exist!"
+            echo "[ERROR] Task with given ID does not exist!"
             exit 10
           fi
         fi
@@ -502,10 +513,12 @@ del_function ()
   local REMOVED=false
   local PROBLEM=false
 
-  for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
+  for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
   do
-    local TASK_ID=${TASKS[$(($i*5))]}
+    local TASK_ID=${TASKS[$(($i*6))]}
     local FOUND=false
+    TASK_TYPE="${TASKS[$(($i*6+1))]}"
+
     for (( j=0; j<$((${#RUNNING_TASKS[@]}/2)); j++ ))
     do
       if [ "$TASK_ID" -eq "${RUNNING_TASKS[$(($j*2+1))]}" ]; then
@@ -514,7 +527,7 @@ del_function ()
       fi
     done
     if [[ "$FOUND" == true ]]; then
-      echo "[ERROR] Copy task with ID $TASK_ID can not be deleted because is already running!"
+      echo "[ERROR] Task with ID $TASK_ID can not be deleted because is already running!"
       PROBLEM=true
     else
       if [[ "$2" == "$TASK_ID" ]]; then
@@ -522,16 +535,16 @@ del_function ()
       fi
     fi
 
-    if [[ "$2" == "$TASK_ID" && "$FOUND" == false ]] || [[ "$2" =~ ^all$ && "$FOUND" == false ]]; then
+    if ([[ "$2" == "$TASK_ID" ]] || ([ "$#" -eq "2" ] && [[ "$2" =~ ^all$ ]]) || [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) && [[ "$FOUND" == false ]]; then
       if [ "$i" -eq "0" ]; then
-        TASKS=( "${TASKS[@]:$(($i*5+5))}" )
+        TASKS=( "${TASKS[@]:$(($i*6+6))}" )
       else
-        TASKS=( "${TASKS[@]:0:$(($i*5))}" "${TASKS[@]:$(($i*5+5))}" )
+        TASKS=( "${TASKS[@]:0:$(($i*6))}" "${TASKS[@]:$(($i*6+6))}" )
       fi
       let i--
-      echo "[INFO] Deleted copy task with ID: $TASK_ID"
+      echo "[INFO] Deleted $TASK_TYPE task with ID: $TASK_ID"
     else
-      echo "${TASKS[$(($i*5))]} \"${TASKS[$(($i*5+1))]}\" \"${TASKS[$(($i*5+2))]}\" ${TASKS[$(($i*5+3))]} ${TASKS[$(($i*5+4))]}" >> "$FILE_TASKS"
+      echo "${TASKS[$(($i*6))]} ${TASKS[$(($i*6+1))]} \"${TASKS[$(($i*6+2))]}\" \"${TASKS[$(($i*6+3))]}\" ${TASKS[$(($i*6+4))]} ${TASKS[$(($i*6+5))]}" >> "$FILE_TASKS"
     fi
   done
   if [[ "$PROBLEM" == true ]]; then
