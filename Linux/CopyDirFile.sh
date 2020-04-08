@@ -397,7 +397,7 @@ show_function ()
           ERROR=false
         fi
       else
-        if [[ "$2" =~ ^[0-9]{1,3}$ ]] && [ "$#" -eq "2" ]; then
+        if [ "$#" -eq "2" ]; then
           local FOUND=false
           for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
@@ -484,7 +484,7 @@ del_function ()
           fi
         fi
       else
-        if [[ "$2" =~ ^[0-9]{1,3}$ ]] && [ "$#" -eq "2" ]; then
+        if [ "$#" -eq "2" ]; then
           local FOUND=false
           for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
@@ -559,10 +559,11 @@ create_new_task ()
 {
   local TASK_PROCESS_ID=""
   local FILE_TASKS_LOGS="$FILE_TASKS_LOGS_DIR/Task_$1.log"
-  local SOURCE="${TASKS[$(($2*5+1))]}"
-  local DESTINATION="${TASKS[$(($2*5+2))]}"
-  local REFRESH="${TASKS[$(($2*5+3))]}"
-  local TWO_DIRECTIONS="${TASKS[$(($2*5+4))]}"
+  local TASK_TYPE="${TASKS[$(($2*6+1))]}"
+  local SOURCE="${TASKS[$(($2*6+2))]}"
+  local DESTINATION="${TASKS[$(($2*6+3))]}"
+  local REFRESH="${TASKS[$(($2*6+4))]}"
+  local TWO_DIRECTIONS="${TASKS[$(($2*6+5))]}"
 
   while true; \
   do \
@@ -582,9 +583,10 @@ create_new_task ()
   echo "$TASK_PROCESS_ID $1" >> "$FILE_TASKS_RUNNING"
 
   if [ $? ]; then 
-    echo "[INFO] Copy task with ID $1 started with process ID: $TASK_PROCESS_ID"
+    echo "[INFO] Task with ID $1 started with process ID: $TASK_PROCESS_ID"
   else
-    echo "[ERROR] An error occurred while adding a running task job to a file containing a list of running copy tasks!"
+    kill $TASK_PROCESS_ID
+    echo "[ERROR] An error occurred while adding a running $TASK_TYPE task ID $1 with process ID $TASK_PROCESS_ID to a file containing a list of running copy tasks! The process has been stopped!"
     exit 14
   fi
 }
@@ -593,28 +595,32 @@ start_function ()
 {
   local ERROR=true
 
-  if [ "$#" -eq "2" ]; then
-    if [[ "$2" == "--help" ]] || [[ "$2" == "-help" ]] || [[ "$2" == "help" ]]; then
+  if [ "$#" -eq "2" ] || [ "$#" -eq "3" ]; then
+    if [[ "$2" == "--help" || "$2" == "-help" || "$2" == "help" ]] && [ "$#" -eq "2" ]; then
       echo "$USAGE_START"
       exit 0
     fi
     if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^[0-9]+$ ]]; then
       if [[ "$2" =~ ^all$ ]]; then
-        ERROR=false
-      else
-        local FOUND=false
-        for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
-        do
-          if [[ "$2" == "${TASKS[$((i*5))]}" ]]; then
-            FOUND=true
-          fi
-        done
-
-        if [[ "$FOUND" == "true" ]]; then
+        if [ "$#" -eq "2" ] || ([ "$#" -eq "3" ] && [[ "$3" =~ ^copy$ || "$3" =~ ^mirror$ ]]); then
           ERROR=false
-        else
-          echo "[ERROR] Copy task with given ID does not exist!"
-          exit 15
+        fi
+      else
+        if [ "$#" -eq "2" ]; then
+          local FOUND=false
+          for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
+          do
+            if [[ "$2" == "${TASKS[$((i*6))]}" ]]; then
+              FOUND=true
+            fi
+          done
+
+          if [[ "$FOUND" == "true" ]]; then
+            ERROR=false
+          else
+            echo "[ERROR] Task with given ID does not exist!"
+            exit 15
+          fi
         fi
       fi
     fi
@@ -625,29 +631,32 @@ start_function ()
     exit 16
   fi
 
-  for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
+  for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
   do
-    local TASK_ID=${TASKS[$((i*5))]}
+    local TASK_ID=${TASKS[$((i*6))]}
     local FOUND=false
     if [[ "$2" =~ ^all$ ]] || [[ "$2" == "$TASK_ID" ]]; then
-      if [ "${#RUNNING_TASKS[@]}" -gt "0" ]; then
-        for (( j=0; j<$((${#RUNNING_TASKS[@]}/2)); j++ ))
-        do
-          if [ "$TASK_ID" -eq "${RUNNING_TASKS[$((j*2+1))]}" ]; then
-            FOUND=true
-            break
-          fi
-        done
-      fi
-      if [[ "$FOUND" == true ]]; then
-        echo "[ERROR] Copy task with ID $TASK_ID is already running!"
-        if [[ "$2" == "$TASK_ID" ]]; then
-          exit 17
+      if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+        if [ "${#RUNNING_TASKS[@]}" -gt "0" ]; then
+          for (( j=0; j<$((${#RUNNING_TASKS[@]}/2)); j++ ))
+          do
+            if [ "$TASK_ID" -eq "${RUNNING_TASKS[$((j*2+1))]}" ]; then
+              FOUND=true
+              break
+            fi
+          done
         fi
-      else
-        create_new_task "$TASK_ID" "$i"
-        if [[ "$2" == "$TASK_ID" ]]; then
-          exit 0
+
+        if [[ "$FOUND" == true ]]; then
+          echo "[ERROR] Task with ID $TASK_ID is already running!"
+          if [[ "$2" == "$TASK_ID" ]]; then
+            exit 17
+          fi
+        else
+          # create_new_task "$TASK_ID" "$i"
+          if [[ "$2" == "$TASK_ID" ]]; then
+            exit 0
+          fi
         fi
       fi
     fi
