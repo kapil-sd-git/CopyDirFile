@@ -381,20 +381,22 @@ show_function ()
 {
   local ERROR=true
 
-  if [ "$#" -eq "2" ]; then
-    if [[ "$2" == "--help" ]] || [[ "$2" == "-help" ]] || [[ "$2" == "help" ]]; then
+  if [ "$#" -eq "2" ] || [ "$#" -eq "3" ]; then
+    if [[ "$2" == "--help" || "$2" == "-help" || "$2" == "help" ]] && [ "$#" -eq "2" ]; then
       echo "$USAGE_SHOW"
       exit 0
     fi
     if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^running$ ]] || [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
       if [[ "$2" =~ ^all$ ]] || [[ "$2" =~ ^running$ ]]; then
-        ERROR=false
+        if [ "$#" -eq "2" ] || ([ "$#" -eq "3" ] && [[ "$3" =~ ^copy$ || "$3" =~ ^mirror$ ]]); then
+          ERROR=false
+        fi
       else
-        if [[ "$2" =~ ^[0-9]{1,3}$ ]]; then
+        if [[ "$2" =~ ^[0-9]{1,3}$ ]] && [ "$#" -eq "2" ]; then
           local FOUND=false
-          for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
+          for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
           do
-            if [[ "$2" == "${TASKS[$((i*5))]}" ]]; then
+            if [[ "$2" == "${TASKS[$((i*6))]}" ]]; then
               FOUND=true
             fi
           done
@@ -415,31 +417,36 @@ show_function ()
     exit 8
   fi
 
-  DIVIDER="================================="
+  DIVIDER="=============================="
   DIVIDER=$DIVIDER$DIVIDER$DIVIDER$DIVIDER$DIVIDER
   if [[ "$2" =~ ^running$ ]]; then
-    printf "\n%10s  %3s  %-40s  %-40s  %7s  %13s\n" "PROCESS ID" "ID" "SOURCE" "DESTINATION" "REFRESH" "TWO DIRECTION"
-    printf "%-123.123s\n" "$DIVIDER"
+    printf "\n%3s  %10s  %6s  %-40s  %-40s  %7s  %13s\n" "ID" "PROCESS ID" "TYPE" "SOURCE" "DESTINATION" "REFRESH" "TWO DIRECTION"
+    printf "%-131.131s\n" "$DIVIDER"
 
-    for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
+    for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
     do
       if [ "${#RUNNING_TASKS[@]}" -gt "0" ]; then
         for (( j=0; j<$((${#RUNNING_TASKS[@]}/2)); j++ ))
         do
-          if [ "${TASKS[$((i*5))]}" -eq "${RUNNING_TASKS[$((j*2+1))]}" ]; then
-            printf "%10s  %3s  %-40s  %-40s  %7s  %13s\n" "${RUNNING_TASKS[$((j*2))]}" "${TASKS[$((i*5))]}" "${TASKS[$((i*5+1))]}" "${TASKS[$((i*5+2))]}" "${TASKS[$((i*5+3))]}" "${TASKS[$((i*5+4))]}"
+          if [ "${TASKS[$((i*6))]}" -eq "${RUNNING_TASKS[$((j*2+1))]}" ]; then
+            if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+              printf "%3s  %10s  %6s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$((i*6))]}" "${RUNNING_TASKS[$((j*2))]}" "${TASKS[$((i*6+1))]}" "${TASKS[$((i*6+2))]}" "${TASKS[$((i*6+3))]}" "${TASKS[$((i*6+4))]}" "${TASKS[$((i*6+5))]}"
+            fi
+            break
           fi
         done
       fi
     done
   else
-    printf "\n%3s  %-40s  %-40s  %7s  %13s\n" "ID" "SOURCE" "DESTINATION" "REFRESH" "TWO DIRECTION"
-    printf "%-111.111s\n" "$DIVIDER"
+    printf "\n%3s  %6s  %-40s  %-40s  %7s  %13s\n" "ID" "TYPE" "SOURCE" "DESTINATION" "REFRESH" "TWO DIRECTION"
+    printf "%-119.119s\n" "$DIVIDER"
 
-    for (( i=0; i<$((${#TASKS[@]}/5)); i++ ))
+    for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
     do
-      if [[ "$2" =~ ^all$ ]] || [[ "$2" == "${TASKS[$((i*5))]}" ]]; then
-        printf "%3s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$((i*5))]}" "${TASKS[$((i*5+1))]}" "${TASKS[$((i*5+2))]}" "${TASKS[$((i*5+3))]}" "${TASKS[$((i*5+4))]}"
+      if [[ "$2" =~ ^all$ || "$2" == "${TASKS[$((i*6))]}" ]]; then
+        if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
+          printf "%3s  %6s  %-40s  %-40s  %7s  %13s\n" "${TASKS[$((i*6))]}" "${TASKS[$((i*6+1))]}" "${TASKS[$((i*6+2))]}" "${TASKS[$((i*6+3))]}" "${TASKS[$((i*6+4))]}" "${TASKS[$((i*6+5))]}"
+        fi
       fi
     done
   fi
