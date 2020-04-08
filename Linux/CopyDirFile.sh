@@ -26,23 +26,23 @@ CHECK_IF_DESTINATION_EXISTS=true
 # Default: FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
 FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
 
-# Location of the file containing the list of currently running copy tasks
+# Location of the file containing the list of currently running copy/mirror tasks
 # Default: FILE_TASKS_RUNNING="$( realpath ~/.CopyDirFile_running.tasks )"
 FILE_TASKS_RUNNING="$( realpath ~/.CopyDirFile_running.tasks )"
 
-# Location and name of the folder in which logs of running copy tasks will be created
+# Location and name of the folder in which logs of running copy/mirror tasks will be created
 # Default: FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 # 
 # END OF CONFIGURATION VARIABLES
 #################
 
-# Variable that stores name of this current script
+# Stores name of this current script
 # Default: SCRIPT_NAME="$( basename $0 )"
 SCRIPT_NAME="$( basename $0 )"
 
-
-VERSION="1.01"
+# Script Version
+VERSION="2.0"
 
 if [[ ! -d "$FILE_TASKS_LOGS_DIR" ]]; then
   mkdir "$FILE_TASKS_LOGS_DIR"
@@ -55,6 +55,11 @@ if test -f "$FILE_TASKS" ; then
   do
     eval "for command in $line; do TASKS+=( \"\$command\" ); done"
   done < "$FILE_TASKS"
+
+  if [ "$((${#TASKS[@]}%6))" -gt "0" ]; then
+    echo "[ERROR] An error was found in the number of parameters in the file containing the tasks!"
+    exit 3
+  fi
 fi
 
 declare -a RUNNING_TASKS=()
@@ -77,12 +82,16 @@ fi
 USAGE_ADD="
 USAGE:
 
-  $SCRIPT_NAME add <source> <destination> <refresh_time> [<two_directions>]
+  $SCRIPT_NAME add <type> <source> <destination> <refresh_time> [<two_directions>]
 
 DESCRIPTION:
   
-  Creates a new copy task
+  Creates a new copy/mirror task
 
+- type - type of task being created
+  Available types are:
+    copy - copy elements from destination path to source
+    mirror - replicates the contents of the source to the destination path
 - source - file or dir which you want to copy
 - destination - file or dir where you want to copy source
 - refresh_time - sets the time after which the task is executed again. The syntax can be as follows: <number><time_prefix>
@@ -90,71 +99,139 @@ DESCRIPTION:
     s - seconds (recommended if changes need to be saved frequently)
     m - minutes (recommended for normal usage)
     h - hours (recommended if changes are rarely made)
-- two_directions - (optional) parameter can only be used if the source and destination paths are the same type (DIR <--> DIR, File <--> File)!
+- two_directions - (optional - used only if task type=copy) parameter can only be used if the source and destination paths are the same type (DIR <--> DIR, File <--> File)!
   Type \"true\" if you want program to copy in two directions (from source to destination and from destination to source), if not, type \"false\". Default value if not specified is \"false\"
 
 EXAMPLES:
 
- If you want to copy the contents of the directory without the folder itself, add the \".\" to the end of the path
+ If you want to create new in two directions copy task thich will copy the contents of the directory without the folder itself, add the \".\" to the end of the path:
 
-   $SCRIPT_NAME add /home/user/. /home/copy/ 1h true
+   $SCRIPT_NAME add copy /home/user/. /home/copy/ 1h true
 
- If the path contains spaces, insert it between quotation marks
+ Create mirror task type which replicates the contents of the source to the destination. If the path contains spaces, insert it between quotation marks:
 
-   $SCRIPT_NAME add /home/user/. \"/home/user/t e s t/.\" 30m
+   $SCRIPT_NAME add mirror /home/user/. \"/home/user/t e s t/\" 30m
 
  If you want to copy the file to another place:
 
-   $SCRIPT_NAME add /home/user/file.txt /home/copy/ 1h
+   $SCRIPT_NAME add copy /home/user/file.txt /home/copy/ 1h
 "
 USAGE_SHOW="
 USAGE:
   
-  $SCRIPT_NAME show <all|running|task_ID>
+  $SCRIPT_NAME show <all|running|task_ID> [<copy|mirror>]
 
 DESCRIPTION:
   
-  Displays a list of created or running copy tasks
+  Displays a list of created or running copy/mirror tasks
 
-- all - displays all created copy tasks
-- running - displays all copy tasks which are already running
-- task_ID - display created copy task with given ID
+- all - displays all created copy and/or mirror tasks
+- running - displays all copy/mirror tasks which are already running
+- task_ID - display created copy/mirror task with given ID
+
+- copy - optional parameter that can be used only if you want to display all running or created copy tasks
+- mirror - optional parameter that can be used only if you want to display all running or created mirror tasks
+
+EXAMPLES:
+
+ If you want to display all created copy and mirror tasks:
+
+   $SCRIPT_NAME show all
+
+ If you want to display all already running mirror type tasks:
+
+   $SCRIPT_NAME show running mirror
+
+ If you want to display task with given ID (in this example, ID = 2):
+
+   $SCRIPT_NAME show 2
 "
 USAGE_START="
 USAGE:
 
-  $SCRIPT_NAME start <all|task_ID>
+  $SCRIPT_NAME start <all|task_ID> [<copy|mirror>]
 
 DESCRIPTION:
 
-  Runs copy tasks
+  Runs copy/mirror tasks
 
-- all - starts all the copy tasks that are in the program
-- task_ID - starts the copy task with specified ID
+- all - starts all the copy and/or mirror tasks that are in the program
+- task_ID - starts the copy/mirror task with specified ID
+
+- copy - optional parameter that can be used only if you want to run all created copy tasks
+- mirror - optional parameter that can be used only if you want to run all created mirror tasks
+
+EXAMPLES:
+
+ If you want to run all created copy and mirror tasks:
+
+   $SCRIPT_NAME start all
+
+ If you want to run all mirror type tasks:
+
+   $SCRIPT_NAME start all mirror
+
+ If you want to run task with given ID (in this example, ID = 2):
+
+   $SCRIPT_NAME start 2
 "
 USAGE_STOP="
 USAGE:
 
-  $SCRIPT_NAME stop <all|task_ID>
+  $SCRIPT_NAME stop <all|task_ID> [<copy|mirror>]
 
 DESCRIPTION:
 
-  Stops all or specified running copy tasks
+  Stops all or specified running copy/mirror tasks
 
-- all - stops all copy tasks that are currently running
-- task_ID - stops the copy task with specified ID which is currently running
+- all - stops all copy and/or mirror tasks that are currently running
+- task_ID - stops the copy/mirror task with specified ID which is currently running
+
+- copy - optional parameter that can be used only if you want to stop all created copy tasks
+- mirror - optional parameter that can be used only if you want to stop all created mirror tasks
+
+EXAMPLES:
+
+ If you want to stop all running copy and mirror tasks:
+
+   $SCRIPT_NAME stop all
+
+ If you want to stop all mirror type tasks:
+
+   $SCRIPT_NAME stop all mirror
+
+ If you want to stop task with given ID (in this example, ID = 2):
+
+   $SCRIPT_NAME stop 2
 "
 USAGE_DEL="
 USAGE:
 
-  $SCRIPT_NAME del <all|task_ID>
+  $SCRIPT_NAME del <all|task_ID> [<copy|mirror>]
 
 DESCRIPTION:
 
-  Deletes all or specified copy tasks
+  Deletes all or specified copy/mirror tasks
 
-- all - deletes all copy tasks that are in the program and are NOT CURRENTLY RUNNING
-- task_ID - deletes the copy task with specified ID (CAN NOT BE CURRENTLY RUNNING)
+- all - deletes all copy and/or mirror tasks that are in the program and are NOT CURRENTLY RUNNING
+- task_ID - deletes the copy/mirror task with specified ID (CAN NOT BE CURRENTLY RUNNING)
+
+- copy - optional parameter that can be used only if you want to delete all created copy tasks that are NOT CURRENTLY RUNNING
+- mirror - optional parameter that can be used only if you want to delete all created mirror tasks that are NOT CURRENTLY RUNNING
+
+EXAMPLES:
+
+ If you want to delete all copy and mirror tasks that are NOT CURRENTLY RUNNING:
+
+   $SCRIPT_NAME del all
+
+ If you want to delete all mirror type tasks that are NOT CURRENTLY RUNNING:
+
+   $SCRIPT_NAME del all mirror
+
+ If you want to delete task with given ID (in this example, ID = 2) that is NOT CURRENTLY RUNNING:
+
+   $SCRIPT_NAME del 2
 "
 
 help_function ()
@@ -162,14 +239,18 @@ help_function ()
   echo "
 This is HELP page of program CopyDirFile.
 
-CopyDirFile is used to create copy tasks for copying files or folders to a given location every specified time period.
+CopyDirFile is used to create copy or mirror tasks for copying or replicating files or folders to a given location every specified time period.
+
+Copy task type allows you to copy elements from destination path to source.
+Mirror task type allows you to replicates the contents of the source to the destination path.
+
 The program can be operated using commands whose syntax is as follows:
 
-  add <source> <destination> <refresh_time> [<two_directions>]  - creates a new copy task
-  show <all|running|task_ID>  - displays a list of created copy tasks
-  start <all|task_ID>  - runs copy tasks
-  del <all|task_ID>  - deletes all or specified copy tasks
-  stop <all|task_ID>  - stops all or specified running copy tasks
+  add <type> <source> <destination> <refresh_time> [<two_directions>]  - creates a new copy/mirror task
+  show <all|running|task_ID> [<type>]  - displays a list of created copy/mirror tasks
+  start <all|task_ID> [<type>]  - runs copy/mirror tasks
+  del <all|task_ID> [<type>]  - deletes all or specified copy/mirror tasks
+  stop <all|task_ID> [<type>]  - stops all or specified running copy/mirror tasks
   help  - display this help page
   about  - display information about this program
 "
@@ -194,39 +275,46 @@ add_function ()
   local ERROR=true
   local TWO_DIRECTIONS=false
 
-  if [ "$#" -eq "4" ] || [ "$#" -eq "5" ] || [ "$#" -eq "2" ]; then
+  if [ "$#" -eq "5" ] || [ "$#" -eq "6" ] || [ "$#" -eq "2" ]; then
     if [ "$#" -eq "2" ]; then
       if [[ "$2" == "--help" ]] || [[ "$2" == "-help" ]] || [[ "$2" == "help" ]]; then
         echo "$USAGE_ADD"
         exit 0
       fi
     else
-      if [[ -f "$( realpath "$2" )" || -d "$( realpath "$2" )" ]] && [[ -f "$( realpath "$3" )" || -d "$( realpath "$3" )" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then
-        if [[ "$4" =~ ^([0-9]{1,3}[smh])$ ]]; then
-          if [[ -d "$( realpath "$2" )" && -f "$( realpath "$3" )" ]]; then
-            echo "[ERROR] Can not copy DIR to FILE!"
-            exit 3
-          else
-            if [[ "$( realpath "$2" )" != "$( realpath "$3" )" ]]; then
-              if [ "$#" -eq "5" ]; then
-                if [[ -d "$( realpath "$2" )" && -d "$( realpath "$3" )" ]] || [[ -f "$( realpath "$2" )" && -f "$( realpath "$3" )" ]]; then
-                  if [[ "$5" =~ ^true$ ]] || [[ "$5" =~ ^false$ ]]; then
-                    TWO_DIRECTIONS="$5"
+      if [[ "$2" =~ ^mirror$ && "$#" -eq "5" ]] || [[ "$2" =~ ^copy$ ]]; then
+        if [[ "$2" =~ ^mirror$ && -d "$( realpath "$3" )" && -d "$( realpath "$4" )" ]] || [[ "$2" =~ ^mirror$ && -d "$( realpath "$3" )" && "$CHECK_IF_DESTINATION_EXISTS" == "false" ]] || [[ "$2" =~ ^copy$ ]]; then
+          if [[ -f "$( realpath "$3" )" || -d "$( realpath "$3" )" ]] && [[ -f "$( realpath "$4" )" || -d "$( realpath "$4" )" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then
+            if [[ "$5" =~ ^([0-9]{1,3}[smh])$ ]]; then
+              if [[ -d "$( realpath "$3" )" && -f "$( realpath "$4" )" ]]; then
+                echo "[ERROR] Can not copy DIR to FILE!"
+                exit 3
+              else
+                if [[ "$( realpath "$3" )" != "$( realpath "$4" )" ]]; then
+                  if [ "$#" -eq "6" ]; then
+                    if [[ -d "$( realpath "$3" )" && -d "$( realpath "$4" )" ]] || [[ -f "$( realpath "$3" )" && -f "$( realpath "$4" )" ]]; then
+                      if [[ "$6" =~ ^true$ ]] || [[ "$6" =~ ^false$ ]]; then
+                        TWO_DIRECTIONS="$6"
+                        ERROR=false
+                      fi
+                    else
+                      echo "[ERROR] two_directions (optional) parameter can only be used if paths exists and the source and destination paths are the same type (DIR <--> DIR, File <--> File)!"
+                    fi
+                  else
                     ERROR=false
                   fi
                 else
-                  echo "[ERROR] two_directions (optional) parameter can only be used if paths exists and the source and destination paths are the same type (DIR <--> DIR, File <--> File)!"
+                  echo "[ERROR] Source and destination can not be the same!"
                 fi
-              else
-                ERROR=false
               fi
-            else
-              echo "[ERROR] Source and destination can not be the same!"
             fi
+          else
+            echo "[ERROR] One of the paths is invalid!"
           fi
+        else
+          echo "[ERROR] In mirror task the destination and source CAN NOT BE FILE!"
+          exit 4
         fi
-      else
-        echo "[ERROR] One of the paths is invalid!"
       fi
     fi
   fi
@@ -236,48 +324,55 @@ add_function ()
     exit 4
   fi
 
-  local NUMBER="$((${#TASKS[@]}/5))"
+  local TASK_TYPE=$2
+  local NUMBER="$((${#TASKS[@]}/6))"
 
-  local SOURCE_PATH="$( realpath "$2" )"
-  if [[ "$2" =~ \/\.$ ]] && [[ -d "$SOURCE_PATH" ]]; then
-    SOURCE_PATH="$( realpath "$2" )/."
+  local SOURCE_PATH="$( realpath "$3" )"
+  if [[ "$3" =~ \/\.$ ]] && [[ -d "$SOURCE_PATH" ]]; then
+    SOURCE_PATH="$( realpath "$3" )/."
   fi
 
-  local DESTINATION_PATH="$3"
+  local DESTINATION_PATH="$4"
   if [ "$CHECK_IF_DESTINATION_EXISTS" != "false" ]; then
-    DESTINATION_PATH="$( realpath "$3" )"
-    if [[ "$3" =~ \/\.$ ]] && [[ -d "$DESTINATION_PATH" ]]; then
-      DESTINATION_PATH="$( realpath "$3" )/."
+    DESTINATION_PATH="$( realpath "$4" )"
+    if [[ "$4" =~ \/\.$ ]] && [[ -d "$DESTINATION_PATH" ]]; then
+      DESTINATION_PATH="$( realpath "$4" )/."
     fi
   fi
 
   local MAXIMUM=0
   for (( i=0; i<$NUMBER; i++ ))
   do
-    if [[ "$SOURCE_PATH" == "${TASKS[$((i*5+1))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$((i*5+2))]}" ]]; then
-      echo "[ERROR] Copy task with the given paths already exists!"
+    if [[ "$SOURCE_PATH" == "${TASKS[$((i*6+2))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$((i*6+3))]}" ]]; then
+      echo "[ERROR] Task with the given paths already exists!"
       exit 5
     fi
 
-    if [ "${TASKS[$((i*5))]}" -gt "$MAXIMUM" ]; then
-      MAXIMUM="${TASKS[$((i*5))]}"
+    if [ "${TASKS[$((i*6))]}" -gt "$MAXIMUM" ]; then
+      MAXIMUM="${TASKS[$((i*6))]}"
     fi
   done
+
+  if [[ "$TASK_TYPE" =~ ^mirror$ ]]; then
+    TWO_DIRECTIONS="-"
+  fi
 
   let MAXIMUM++
 
   TASKS+=( "$MAXIMUM" )
+
+  TASKS+=( "$TASK_TYPE" )
   TASKS+=( "$SOURCE_PATH" )
   TASKS+=( "$DESTINATION_PATH" )
-  TASKS+=( "$4" )
+  TASKS+=( "$5" )
   TASKS+=( "$TWO_DIRECTIONS" )
 
-  echo "${TASKS[$(($NUMBER*5))]} \"${TASKS[$(($NUMBER*5+1))]}\" \"${TASKS[$(($NUMBER*5+2))]}\" ${TASKS[$(($NUMBER*5+3))]} ${TASKS[$(($NUMBER*5+4))]}" >> "$FILE_TASKS"
+  echo "${TASKS[$(($NUMBER*6))]} ${TASKS[$(($NUMBER*6+1))]} \"${TASKS[$(($NUMBER*6+2))]}\" \"${TASKS[$(($NUMBER*6+3))]}\" ${TASKS[$(($NUMBER*6+4))]} ${TASKS[$(($NUMBER*6+5))]}" >> "$FILE_TASKS"
 
   if [ $? ]; then 
-    echo "[INFO] New copy task created with ID: $MAXIMUM"
+    echo "[INFO] New $TASK_TYPE task created with ID: $MAXIMUM"
   else
-    echo "[ERROR] An error occurred while adding copy task to file!"
+    echo "[ERROR] An error occurred while adding $TASK_TYPE task to file!"
     exit 6
   fi
 }
