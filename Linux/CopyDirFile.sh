@@ -6,6 +6,7 @@
 # |              CopyDirFile for Linux               |
 # +--------------------------------------------------+
 # 
+#  YOU USE IT AT YOUR OWN RISK
 #  I am not responsible for any damage or loss of data suffered as a result of using this program.
 #  By using this, you confirm that you agree with the above.
 #  If you disagree with the above, you must do not use this.
@@ -564,13 +565,18 @@ create_new_task ()
   local DESTINATION="${TASKS[$(($2*6+3))]}"
   local REFRESH="${TASKS[$(($2*6+4))]}"
   local TWO_DIRECTIONS="${TASKS[$(($2*6+5))]}"
+  local SUCCESS=false
 
   while true; \
   do \
+    SUCCESS=false; \
     if [[ -f "$SOURCE" || -d "$SOURCE" ]] && [[ -f "$DESTINATION" || -d "$DESTINATION" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then \
-      cp -au "$SOURCE" "$DESTINATION" >> "$FILE_TASKS_LOGS" 2>&1 || echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while copying! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
-      if [[ "$TWO_DIRECTIONS" =~ ^true$ ]]; then \
+      cp -au "$SOURCE" "$DESTINATION" >> "$FILE_TASKS_LOGS" 2>&1 && SUCCESS=true || echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while copying! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
+      if [[ "$TWO_DIRECTIONS" =~ ^true$ && "$TASK_TYPE" =~ ^copy$ ]]; then \
         cp -au "$DESTINATION" "$SOURCE" >> "$FILE_TASKS_LOGS" 2>&1 || echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while copying into second direction! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
+      fi; \
+      if [[ "$TASK_TYPE" =~ ^mirror$ && "$SUCCESS" =~ ^true$ ]]; then \
+        diff -rq "$SOURCE" "$DESTINATION" | grep "$DESTINATION" | awk -F': ' '{print $1"/"$2}' | awk -F'/+|/./' '{printf "'"'"'"; for (i=2; i<=NF; i++) printf "/"$i; done; printf "'"'"'\n"}' | xargs rm -rf 
       fi; \
     else \
       echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: One of the paths is invalid! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
