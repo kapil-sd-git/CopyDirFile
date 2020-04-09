@@ -338,14 +338,20 @@ add_function ()
   local NUMBER="$((${#TASKS[@]}/6))"
 
   local SOURCE_PATH="$( realpath "$3" )"
-  if [[ "$3" =~ \/\.$ ]] && [[ -d "$SOURCE_PATH" ]]; then
+  if [[ "$3" =~ \/\.$ && -d "$SOURCE_PATH" ]]; then
     SOURCE_PATH="$( realpath "$3" )/."
+  fi
+
+  if [[ "$TASK_TYPE" =~ ^mirror$ && -d "$SOURCE_PATH" ]]; then
+    if [[ ! "$SOURCE_PATH" =~ \/\.$ ]]; then
+      SOURCE_PATH="$SOURCE_PATH/."
+    fi
   fi
 
   local DESTINATION_PATH="$4"
   if [ "$CHECK_IF_DESTINATION_EXISTS" != "false" ]; then
     DESTINATION_PATH="$( realpath "$4" )"
-    if [[ "$4" =~ \/\.$ ]] && [[ -d "$DESTINATION_PATH" ]]; then
+    if [[ "$4" =~ \/\.$ && -d "$DESTINATION_PATH" ]]; then
       DESTINATION_PATH="$( realpath "$4" )/."
     fi
   fi
