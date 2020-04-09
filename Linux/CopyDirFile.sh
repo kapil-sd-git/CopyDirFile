@@ -23,6 +23,14 @@
 # Default: CHECK_IF_DESTINATION_EXISTS=true
 CHECK_IF_DESTINATION_EXISTS=true
 
+# WORKS ONLY IN MIRROR TYPE. Automatically adds "/." at the end of the source path, if not added. If you want to disable this option, enter "false" as the value.
+# Default: SLASH_WITH_DOT_ON_END_SOURCE_PATH=true
+SLASH_WITH_DOT_ON_END_SOURCE_PATH=true
+
+# Checks when creating a new task if the destination path contains the source path. If so, it causes an error. If you want to disable this option, enter "false" as the value.
+# Default: CHECK_IF_DESTINATION_CONTAINS_SOURCE=true
+CHECK_IF_DESTINATION_CONTAINS_SOURCE=true
+
 # Stores the location of the file containing the list of copy tasks
 # Default: FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
 FILE_TASKS="$( realpath ~/.CopyDirFile.tasks )"
@@ -43,7 +51,7 @@ FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 SCRIPT_NAME="$( basename $0 )"
 
 # Script Version
-VERSION="2.0"
+VERSION="2.1"
 
 if [[ ! -d "$FILE_TASKS_LOGS_DIR" ]]; then
   mkdir "$FILE_TASKS_LOGS_DIR"
@@ -81,7 +89,7 @@ if test -f "$FILE_TASKS_RUNNING" ; then
 
   if [ "$((${#RUNNING_TASKS[@]}%2))" -gt "0" ]; then
     echo "[ERROR] An error was found in the number of parameters in the file containing the running tasks!"
-    exit 3
+    exit 4
   fi
 fi
 
@@ -298,7 +306,7 @@ add_function ()
             if [[ "$5" =~ ^([0-9]{1,3}[smh])$ ]]; then
               if [[ -d "$( realpath "$3" )" && -f "$( realpath "$4" )" ]]; then
                 echo "[ERROR] Can not copy DIR to FILE!"
-                exit 3
+                exit 5
               else
                 if [[ "$( realpath "$3" )" != "$( realpath "$4" )" ]]; then
                   if [ "$#" -eq "6" ]; then
@@ -309,12 +317,14 @@ add_function ()
                       fi
                     else
                       echo "[ERROR] two_directions (optional) parameter can only be used if paths exists and the source and destination paths are the same type (DIR <--> DIR, File <--> File)!"
+                      exit 6
                     fi
                   else
                     ERROR=false
                   fi
                 else
                   echo "[ERROR] Source and destination can not be the same!"
+                  exit 7
                 fi
               fi
             fi
@@ -323,7 +333,7 @@ add_function ()
           fi
         else
           echo "[ERROR] In mirror task the destination and/or source CAN NOT BE FILE!"
-          exit 4
+          exit 8
         fi
       fi
     fi
@@ -331,22 +341,11 @@ add_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_ADD"
-    exit 4
+    exit 9
   fi
 
   local TASK_TYPE=$2
   local NUMBER="$((${#TASKS[@]}/6))"
-
-  local SOURCE_PATH="$( realpath "$3" )"
-  if [[ "$3" =~ \/\.$ && -d "$SOURCE_PATH" ]]; then
-    SOURCE_PATH="$( realpath "$3" )/."
-  fi
-
-  if [[ "$TASK_TYPE" =~ ^mirror$ && -d "$SOURCE_PATH" ]]; then
-    if [[ ! "$SOURCE_PATH" =~ \/\.$ ]]; then
-      SOURCE_PATH="$SOURCE_PATH/."
-    fi
-  fi
 
   local DESTINATION_PATH="$4"
   if [ "$CHECK_IF_DESTINATION_EXISTS" != "false" ]; then
@@ -356,12 +355,29 @@ add_function ()
     fi
   fi
 
+  local SOURCE_PATH="$( realpath "$3" )"
+
+  if [[ "$DESTINATION_PATH" =~ ^$SOURCE_PATH.* ]] && [[ "$CHECK_IF_DESTINATION_CONTAINS_SOURCE" == true ]]; then
+    echo "[ERROR] Destination path can not contain the source path!"
+    exit 10
+  fi
+
+  if [[ "$3" =~ \/\.$ && -d "$SOURCE_PATH" ]]; then
+    SOURCE_PATH="$( realpath "$3" )/."
+  fi
+
+  if [[ "$TASK_TYPE" =~ ^mirror$ && -d "$SOURCE_PATH" && "$SLASH_WITH_DOT_ON_END_SOURCE_PATH" == true ]]; then
+    if [[ ! "$SOURCE_PATH" =~ \/\.$ ]]; then
+      SOURCE_PATH="$SOURCE_PATH/."
+    fi
+  fi
+
   local MAXIMUM=0
   for (( i=0; i<$NUMBER; i++ ))
   do
     if [[ "$SOURCE_PATH" == "${TASKS[$(($i*6+2))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$(($i*6+3))]}" ]]; then
       echo "[ERROR] Task with the given paths already exists!"
-      exit 5
+      exit 11
     fi
 
     if [ "${TASKS[$((i*6))]}" -gt "$MAXIMUM" ]; then
@@ -389,7 +405,7 @@ add_function ()
     echo "[INFO] New $TASK_TYPE task created with ID: $MAXIMUM"
   else
     echo "[ERROR] An error occurred while adding $TASK_TYPE task to file!"
-    exit 6
+    exit 12
   fi
 }
 
@@ -421,7 +437,7 @@ show_function ()
             ERROR=false
           else
             echo "[ERROR] Task with given ID does not exist!"
-            exit 7
+            exit 13
           fi
         fi
       fi
@@ -430,7 +446,7 @@ show_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_SHOW"
-    exit 8
+    exit 14
   fi
 
   DIVIDER="=============================="
@@ -491,7 +507,7 @@ del_function ()
             ERROR=false
           else
             echo "[ERROR] Operation canceled"
-            exit 9
+            exit 15
           fi
         fi
       else
@@ -508,7 +524,7 @@ del_function ()
             ERROR=false
           else
             echo "[ERROR] Task with given ID does not exist!"
-            exit 10
+            exit 16
           fi
         fi
       fi
@@ -517,7 +533,7 @@ del_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_DEL"
-    exit 11
+    exit 17
   fi
 
   > "$FILE_TASKS"
@@ -559,10 +575,10 @@ del_function ()
     fi
   done
   if [[ "$PROBLEM" == true ]]; then
-    exit 12
+    exit 18
   fi
   if [[ "$2" =~ ^[0-9]+$ ]] && [[ "$REMOVED" == false ]]; then
-    exit 13
+    exit 19
   fi
 }
 
@@ -603,7 +619,7 @@ create_new_task ()
   else
     kill $TASK_PROCESS_ID
     echo "[ERROR] An error occurred while adding a running $TASK_TYPE task ID $1 with process ID $TASK_PROCESS_ID to a file containing a list of running copy tasks! The process has been stopped!"
-    exit 14
+    exit 20
   fi
 }
 
@@ -635,7 +651,7 @@ start_function ()
             ERROR=false
           else
             echo "[ERROR] Task with given ID does not exist!"
-            exit 15
+            exit 21
           fi
         fi
       fi
@@ -644,7 +660,7 @@ start_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_START"
-    exit 16
+    exit 22
   fi
 
   for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
@@ -666,7 +682,7 @@ start_function ()
         if [[ "$FOUND" == true ]]; then
           echo "[ERROR] Task with ID $TASK_ID is already running!"
           if [[ "$2" == "$TASK_ID" ]]; then
-            exit 17
+            exit 23
           fi
         else
           create_new_task "$TASK_ID" "$i"
@@ -707,7 +723,7 @@ stop_function ()
             ERROR=false
           else
             echo "[ERROR] The entered task ID is not currently running or does not exist!"
-            exit 18
+            exit 24
           fi
         fi
       fi
@@ -716,7 +732,7 @@ stop_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_STOP"
-    exit 19
+    exit 25
   fi
 
   > "$FILE_TASKS_RUNNING"
@@ -763,7 +779,7 @@ stop_function ()
   done
 
   if [[ "$PROBLEM" == true ]]; then
-    exit 20
+    exit 26
   fi
 }
 
