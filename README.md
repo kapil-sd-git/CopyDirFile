@@ -30,10 +30,10 @@
   
 ## Command syntax
   - `add <copy|mirror> <source> <destination> <refresh_time> [<two_directions>]`  - creates a new copy/mirror task
-  - `show <all|running|task_ID> [<type>]`  - displays a list of created copy/mirror tasks
-  - `start <all|task_ID> [<type>]`  - runs copy/mirror tasks
-  - `del <all|task_ID> [<type>]`  - deletes all or specified copy/mirror tasks
-  - `stop <all|task_ID> [<type>]`  - stops all or specified running copy/mirror tasks
+  - `show <all|running|task_ID> [<copy|mirror>]`  - displays a list of created copy/mirror tasks
+  - `start <all|task_ID> [<copy|mirror>]`  - runs copy/mirror tasks
+  - `del <all|task_ID> [<copy|mirror>]`  - deletes all or specified copy/mirror tasks
+  - `stop <all|task_ID> [<copy|mirror>]`  - stops all or specified running copy/mirror tasks
   - `help`  - display help page
   - `about`  - display information about this program
   
