@@ -12,21 +12,24 @@
   Logs of running copy/mirror tasks are created in the folder intended for this (the name of the variable that stores the folder location is in the section below). Each file created corresponds to one copy/mirror task ID. The file name syntax is: `Task_<task_ID>.log`
   
 ## You use it at your own risk
-
   I am not responsible for any damage or loss of data suffered as a result of using this program.   
   By using this, you confirm that you agree with the above information.   
-  If you disagree with the above, you must do not use this.
+  If you disagree with the above, you must do not use this.   
   
   This script is created in spare time and may contain bugs or be underdeveloped.   
   If you found any bugs that I could miss or you would like to give advice, I would be grateful for this information.   
   
 ## Settings changes
-  By default, the script checks if the directory or file typed as source/destination exist. If you don't want the script to check if the destination folder or file exists, you can change it in the file by changing the value of the `CHECK_IF_DESTINATION_EXISTS` variable from `true` to `false`.  
+  By default, the script checks if the directory or file typed as source/destination exist. If you don't want the script to check if the destination folder or file exists, you can change it in the file by changing the value of the `CHECK_IF_DESTINATION_EXISTS` variable from `true` to `false`.   
+  
+  When adding a new task, the script automatically checks if the destination path contains the source path. If so, it causes an error. If you want to disable this option, change value of the `CHECK_IF_DESTINATION_CONTAINS_SOURCE` variable from `true` to `false`.   
+  
+  When you create new mirror task then program automatically adds `/.` at the end of the source path, if not added. If you want to disable this option, change value of the `SLASH_WITH_DOT_ON_END_SOURCE_PATH` variable from `true` to `false`. It works only with mirror type tasks.   
   
   The default location of the folder containing logs of started copy/mirror tasks and created files containing the list of created copy/mirror tasks and the list of started all copy/mirror tasks is set to the user's home folder. If you want to change the location, just change the values of the following variables in script:
-  - `FILE_TASKS` - variable that stores the location of the file containing the list of copy tasks
-  - `FILE_TASKS_RUNNING` - location of the file containing the list of currently running copy tasks
-  - `FILE_TASKS_LOGS_DIR` - location and name of the folder in which logs of running copy tasks will be created
+  - `FILE_TASKS` - stores the location of the file containing the list of copy and mirror tasks
+  - `FILE_TASKS_RUNNING` - location of the file containing the list of currently running copy and mirror tasks
+  - `FILE_TASKS_LOGS_DIR` - location and name of the folder in which logs of running copy and mirror tasks will be created   
   
 ## Command syntax
   - `add <copy|mirror> <source> <destination> <refresh_time> [<two_directions>]`  - creates a new copy/mirror task
@@ -38,7 +41,6 @@
   - `about`  - display information about this program
   
 ## Code Examples
-
   If you want to create a mirror task that will replicate the contents of the source folder in the destination folder. With type mirror when specifying the source path, you do not need to specify `/.` on the end of this path because the program will add it automatically (only in mirror task). You can do it this way:
 
   ```sh
