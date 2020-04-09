@@ -122,6 +122,7 @@ EXAMPLES:
 
    $SCRIPT_NAME add copy /home/user/file.txt /home/copy/ 1h
 "
+
 USAGE_SHOW="
 USAGE:
   
@@ -152,6 +153,7 @@ EXAMPLES:
 
    $SCRIPT_NAME show 2
 "
+
 USAGE_START="
 USAGE:
 
@@ -181,6 +183,7 @@ EXAMPLES:
 
    $SCRIPT_NAME start 2
 "
+
 USAGE_STOP="
 USAGE:
 
@@ -210,6 +213,7 @@ EXAMPLES:
 
    $SCRIPT_NAME stop 2
 "
+
 USAGE_DEL="
 USAGE:
 
