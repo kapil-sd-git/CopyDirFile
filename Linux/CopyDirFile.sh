@@ -51,7 +51,7 @@ FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 SCRIPT_NAME="$( basename $0 )"
 
 # Script Version
-VERSION="2.1"
+VERSION="2.2"
 
 if [[ ! -d "$FILE_TASKS_LOGS_DIR" ]]; then
   mkdir "$FILE_TASKS_LOGS_DIR"
@@ -301,8 +301,8 @@ add_function ()
       fi
     else
       if [[ "$2" =~ ^mirror$ && "$#" -eq "5" ]] || [[ "$2" =~ ^copy$ ]]; then
-        if [[ "$2" =~ ^mirror$ && -d "$( realpath "$3" )" && -d "$( realpath "$4" )" ]] || [[ "$2" =~ ^mirror$ && -d "$( realpath "$3" )" && "$CHECK_IF_DESTINATION_EXISTS" == "false" ]] || [[ "$2" =~ ^copy$ ]]; then
-          if [[ -f "$( realpath "$3" )" || -d "$( realpath "$3" )" ]] && [[ -f "$( realpath "$4" )" || -d "$( realpath "$4" )" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then
+        if [[ -f "$( realpath "$3" )" || -d "$( realpath "$3" )" ]] && [[ -f "$( realpath "$4" )" || -d "$( realpath "$4" )" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then
+          if [[ "$2" =~ ^mirror$ && -d "$( realpath "$3" )" && -d "$( realpath "$4" )" ]] || [[ "$2" =~ ^mirror$ && -d "$( realpath "$3" )" && "$CHECK_IF_DESTINATION_EXISTS" == "false" ]] || [[ "$2" =~ ^copy$ ]]; then
             if [[ "$5" =~ ^([0-9]{1,3}[smh])$ ]]; then
               if [[ -d "$( realpath "$3" )" && -f "$( realpath "$4" )" ]]; then
                 echo "[ERROR] Can not copy DIR to FILE!"
@@ -329,11 +329,12 @@ add_function ()
               fi
             fi
           else
-            echo "[ERROR] One of the paths is invalid!"
+            echo "[ERROR] In mirror task the destination and/or source CAN NOT BE FILE!"
+            exit 8
           fi
         else
-          echo "[ERROR] In mirror task the destination and/or source CAN NOT BE FILE!"
-          exit 8
+          echo "[ERROR] One of the specified paths is invalid!"
+          exit 9
         fi
       fi
     fi
@@ -341,7 +342,7 @@ add_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_ADD"
-    exit 9
+    exit 10
   fi
 
   local TASK_TYPE=$2
@@ -359,7 +360,7 @@ add_function ()
 
   if [[ "$DESTINATION_PATH" =~ ^$SOURCE_PATH.* ]] && [[ "$CHECK_IF_DESTINATION_CONTAINS_SOURCE" == true ]]; then
     echo "[ERROR] Destination path can not contain the source path!"
-    exit 10
+    exit 11
   fi
 
   if [[ "$3" =~ \/\.$ && -d "$SOURCE_PATH" ]]; then
@@ -377,7 +378,7 @@ add_function ()
   do
     if [[ "$SOURCE_PATH" == "${TASKS[$(($i*6+2))]}" ]] && [[ "$DESTINATION_PATH" == "${TASKS[$(($i*6+3))]}" ]]; then
       echo "[ERROR] Task with the given paths already exists!"
-      exit 11
+      exit 12
     fi
 
     if [ "${TASKS[$((i*6))]}" -gt "$MAXIMUM" ]; then
@@ -405,7 +406,7 @@ add_function ()
     echo "[INFO] New $TASK_TYPE task created with ID: $MAXIMUM"
   else
     echo "[ERROR] An error occurred while adding $TASK_TYPE task to file!"
-    exit 12
+    exit 13
   fi
 }
 
@@ -437,7 +438,7 @@ show_function ()
             ERROR=false
           else
             echo "[ERROR] Task with given ID does not exist!"
-            exit 13
+            exit 14
           fi
         fi
       fi
@@ -446,7 +447,7 @@ show_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_SHOW"
-    exit 14
+    exit 15
   fi
 
   DIVIDER="=============================="
@@ -507,7 +508,7 @@ del_function ()
             ERROR=false
           else
             echo "[ERROR] Operation canceled"
-            exit 15
+            exit 16
           fi
         fi
       else
@@ -524,7 +525,7 @@ del_function ()
             ERROR=false
           else
             echo "[ERROR] Task with given ID does not exist!"
-            exit 16
+            exit 17
           fi
         fi
       fi
@@ -533,7 +534,7 @@ del_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_DEL"
-    exit 17
+    exit 18
   fi
 
   > "$FILE_TASKS"
@@ -554,15 +555,17 @@ del_function ()
       fi
     done
     if [[ "$FOUND" == true ]]; then
-      echo "[ERROR] Task with ID $TASK_ID can not be deleted because is already running!"
-      PROBLEM=true
+      if ([ "$#" -eq "2" ] && [[ "$2" =~ ^all$ ]]) || [[ "$3" == "$TASK_TYPE" ]] || [[ "$2" == "$TASK_ID" ]]; then
+        echo "[ERROR] Task with ID $TASK_ID can not be deleted because is already running!"
+        PROBLEM=true
+      fi
     else
       if [[ "$2" == "$TASK_ID" ]]; then
         REMOVED=true
       fi
     fi
 
-    if ([[ "$2" == "$TASK_ID" ]] || ([ "$#" -eq "2" ] && [[ "$2" =~ ^all$ ]]) || [[ "$3" == "${TASKS[$((i*6+1))]}" ]]) && [[ "$FOUND" == false ]]; then
+    if ([[ "$2" == "$TASK_ID" ]] || ([ "$#" -eq "2" ] && [[ "$2" =~ ^all$ ]]) || [[ "$3" == "$TASK_TYPE" ]]) && [[ "$FOUND" == false ]]; then
       if [ "$i" -eq "0" ]; then
         TASKS=( "${TASKS[@]:$(($i*6+6))}" )
       else
@@ -575,10 +578,10 @@ del_function ()
     fi
   done
   if [[ "$PROBLEM" == true ]]; then
-    exit 18
+    exit 19
   fi
   if [[ "$2" =~ ^[0-9]+$ ]] && [[ "$REMOVED" == false ]]; then
-    exit 19
+    exit 20
   fi
 }
 
@@ -593,19 +596,30 @@ create_new_task ()
   local TWO_DIRECTIONS="${TASKS[$(($2*6+5))]}"
   local SUCCESS=false
 
+  if [[ -e "$FILE_TASKS_LOGS" ]]; then
+    if [[ ! -w "$FILE_TASKS_LOGS" ]]; then
+      echo "[ERROR] $SCRIPT_NAME does not have permission to write to: $FILE_TASKS_LOGS! The task has not been started!"
+      exit 21
+    fi
+  fi
+
   while true; \
   do \
-    SUCCESS=false; \
+    SUCCESS=false;
     if [[ -f "$SOURCE" || -d "$SOURCE" ]] && [[ -f "$DESTINATION" || -d "$DESTINATION" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then \
-      cp -au "$SOURCE" "$DESTINATION" >> "$FILE_TASKS_LOGS" 2>&1 && SUCCESS=true || echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while copying! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
-      if [[ "$TWO_DIRECTIONS" =~ ^true$ && "$TASK_TYPE" =~ ^copy$ ]]; then \
-        cp -au "$DESTINATION" "$SOURCE" >> "$FILE_TASKS_LOGS" 2>&1 || echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while copying into second direction! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
+      if [[ "$TASK_TYPE" =~ ^mirror$ ]]; then \
+        rsync -qac "$SOURCE" --delete "$DESTINATION" >> "$FILE_TASKS_LOGS" 2>&1 && SUCCESS=true; \
+      else \
+        rsync -quac "$SOURCE" "$DESTINATION" >> "$FILE_TASKS_LOGS" 2>&1 && SUCCESS=true; \
+        if [[ "$TWO_DIRECTIONS" =~ ^true$ && "$TASK_TYPE" =~ ^copy$ && "$SUCCESS" =~ ^true$ ]]; then \
+          rsync -quac "$DESTINATION" "$SOURCE" >> "$FILE_TASKS_LOGS" 2>&1 || echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while copying into second direction in $TASK_TYPE task with ID $1! Skipped copying into second direction (will retry after $REFRESH) Maybe need root permissions?" >> "$FILE_TASKS_LOGS"; \
+        fi; \
       fi; \
-      if [[ "$TASK_TYPE" =~ ^mirror$ && "$SUCCESS" =~ ^true$ ]]; then \
-        diff -rq "$SOURCE" "$DESTINATION" | grep "$DESTINATION" | awk -F': ' '{print $1"/"$2}' | awk -F'/+|/./' '{printf "'"'"'"; for (i=2; i<=NF; i++) printf "/"$i; done; printf "'"'"'\n"}' | xargs rm -rf 
+      if [[ "$SUCCESS" =~ ^false$ ]]; then \
+        echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: An error occurred while executing the $TASK_TYPE task with ID $1! The task was skipped this time (will retry after $REFRESH) Maybe need root permissions?" >> "$FILE_TASKS_LOGS"; \
       fi; \
     else \
-      echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: One of the paths is invalid! The copy has not been made" >> "$FILE_TASKS_LOGS"; \
+      echo "[$(date +'%d/%m/%Y %R:%S')] ERROR: One of specified paths is invalid! The $TASK_TYPE task with ID $1 has not been made (will retry after $REFRESH)" >> "$FILE_TASKS_LOGS"; \
     fi; \
     sleep $REFRESH; \
   done &
@@ -619,7 +633,7 @@ create_new_task ()
   else
     kill $TASK_PROCESS_ID
     echo "[ERROR] An error occurred while adding a running $TASK_TYPE task ID $1 with process ID $TASK_PROCESS_ID to a file containing a list of running copy tasks! The process has been stopped!"
-    exit 20
+    exit 22
   fi
 }
 
@@ -651,7 +665,7 @@ start_function ()
             ERROR=false
           else
             echo "[ERROR] Task with given ID does not exist!"
-            exit 21
+            exit 23
           fi
         fi
       fi
@@ -660,7 +674,7 @@ start_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_START"
-    exit 22
+    exit 24
   fi
 
   for (( i=0; i<$((${#TASKS[@]}/6)); i++ ))
@@ -682,7 +696,7 @@ start_function ()
         if [[ "$FOUND" == true ]]; then
           echo "[ERROR] Task with ID $TASK_ID is already running!"
           if [[ "$2" == "$TASK_ID" ]]; then
-            exit 23
+            exit 25
           fi
         else
           create_new_task "$TASK_ID" "$i"
@@ -723,7 +737,7 @@ stop_function ()
             ERROR=false
           else
             echo "[ERROR] The entered task ID is not currently running or does not exist!"
-            exit 24
+            exit 26
           fi
         fi
       fi
@@ -732,7 +746,7 @@ stop_function ()
 
   if [[ "$ERROR" == true ]]; then
     echo "$USAGE_STOP"
-    exit 25
+    exit 27
   fi
 
   > "$FILE_TASKS_RUNNING"
@@ -744,6 +758,7 @@ stop_function ()
     PROCESS_ID=${RUNNING_TASKS[$(($i*2))]}
     TASK_ID=${RUNNING_TASKS[$(($i*2+1))]}
     local TASK_TYPE=""
+    local SUCCESS=true
 
     if [[ "$2" == "$TASK_ID" ]] || [[ "$2" =~ ^all$ ]]; then
       for (( j=0; j<$((${#TASKS[@]}/6)); j++ ))
@@ -752,9 +767,9 @@ stop_function ()
           if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$(($j*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
             TASK_TYPE=" ${TASKS[$(($2*6+1))]}"
 
-            kill $PROCESS_ID
+            kill $PROCESS_ID || SUCCESS=false
 
-            if [ $? ]; then
+            if [[ "$SUCCESS" == "true" ]]; then
               echo "[INFO] Running$TASK_TYPE task ID $TASK_ID with process ID $PROCESS_ID has been stopped"
               if [ "$i" -eq "0" ]; then
                 RUNNING_TASKS=( "${RUNNING_TASKS[@]:$(($i*2+2))}" )
@@ -763,7 +778,7 @@ stop_function ()
               fi
               let i--
             else
-              echo "[ERROR] An error occurred closing the$TASK_TYPE task ID $TASK_ID with the given process ID $PROCESS_ID!"
+              echo "[ERROR] An error occurred closing the$TASK_TYPE task ID $TASK_ID with the given process ID $PROCESS_ID! Maybe need root permissions?"
               echo "$PROCESS_ID $TASK_ID" >> "$FILE_TASKS_RUNNING"
               PROBLEM=true
             fi
@@ -779,7 +794,7 @@ stop_function ()
   done
 
   if [[ "$PROBLEM" == true ]]; then
-    exit 26
+    exit 28
   fi
 }
 
