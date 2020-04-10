@@ -605,7 +605,7 @@ create_new_task ()
 
   while true; \
   do \
-    SUCCESS=false;
+    SUCCESS=false; \
     if [[ -f "$SOURCE" || -d "$SOURCE" ]] && [[ -f "$DESTINATION" || -d "$DESTINATION" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then \
       if [[ "$TASK_TYPE" =~ ^mirror$ ]]; then \
         rsync -qac "$SOURCE" --delete "$DESTINATION" >> "$FILE_TASKS_LOGS" 2>&1 && SUCCESS=true; \
