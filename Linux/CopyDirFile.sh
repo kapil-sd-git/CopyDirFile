@@ -51,15 +51,67 @@ FILE_TASKS_LOGS_DIR="$( realpath ~/ )/CopyDirFile_Logs"
 SCRIPT_NAME="$( basename $0 )"
 
 # Script Version
-VERSION="2.2"
+VERSION="2.3"
 
 if [[ ! -d "$FILE_TASKS_LOGS_DIR" ]]; then
   mkdir "$FILE_TASKS_LOGS_DIR"
 fi
 
+declare -a RUNNING_TASKS=()
+
+if test -f "$FILE_TASKS_RUNNING" ; then
+  if [[ ! "$1" =~ ^show$ || "$1" =~ ^show$ && "$2" =~ ^running$ ]] && [[ ! "$1" =~ ^add$ ]]; then
+    if [[ ! -w "$FILE_TASKS_LOGS_DIR" && "$1" =~ ^start$ ]]; then
+      echo "[ERROR] $SCRIPT_NAME does not have permission to write to the folder containing logs of running tasks: $FILE_TASKS_LOGS_DIR!"
+      exit 4
+    fi
+
+    if [[ -e "$FILE_TASKS_RUNNING" ]]; then
+      if [[ ! -w "$FILE_TASKS_RUNNING" ]]; then
+        echo "[ERROR] $SCRIPT_NAME does not have permission to write to: $FILE_TASKS_RUNNING! Can not load and update running tasks list!"
+        exit 4
+      fi
+    fi
+
+    while IFS= read -r line
+    do
+      TEMP_ARRAY=()
+      eval "for command in $line; do TEMP_ARRAY+=( \"\$command\" ); done"
+      ps -p ${TEMP_ARRAY[0]} > /dev/null && RUNNING_TASKS+=( "${TEMP_ARRAY[0]}" "${TEMP_ARRAY[1]}" )
+    done < "$FILE_TASKS_RUNNING"
+
+    > "$FILE_TASKS_RUNNING"
+    for (( i=0; i<$((${#RUNNING_TASKS[@]}/2)); i++ ))
+    do
+      echo "${RUNNING_TASKS[$(($i*2))]} ${RUNNING_TASKS[$(($i*2+1))]}" >> "$FILE_TASKS_RUNNING"
+    done
+
+    if [ "$((${#RUNNING_TASKS[@]}%2))" -gt "0" ]; then
+      echo "[ERROR] An error was found in the number of parameters in the file containing the running tasks!"
+      exit 4
+    fi
+  fi
+fi
+
 declare -a TASKS=()
 
 if test -f "$FILE_TASKS" ; then
+  if [[ -e "$FILE_TASKS" ]]; then
+    if [[ ! -w "$FILE_TASKS" ]]; then
+      if [[ -r "$FILE_TASKS" ]]; then
+        if [[ "$1" =~ ^show$ ]]; then
+          echo "[INFO] $SCRIPT_NAME does not have permission to write to file containing the list of copy tasks! Only read mode!"
+        else
+          echo "[ERROR] $SCRIPT_NAME does not have permission to write to: $FILE_TASKS! The specified command cannot be executed!"
+          exit 3
+        fi
+      else
+        echo "[ERROR] $SCRIPT_NAME does not have permission to write and read to: $FILE_TASKS! Can not load tasks list!"
+        exit 3
+      fi
+    fi
+  fi
+
   while IFS= read -r line
   do
     eval "for command in $line; do TASKS+=( \"\$command\" ); done"
@@ -68,28 +120,6 @@ if test -f "$FILE_TASKS" ; then
   if [ "$((${#TASKS[@]}%6))" -gt "0" ]; then
     echo "[ERROR] An error was found in the number of parameters in the file containing the tasks!"
     exit 3
-  fi
-fi
-
-declare -a RUNNING_TASKS=()
-
-if test -f "$FILE_TASKS_RUNNING" ; then
-  while IFS= read -r line
-  do
-    TEMP_ARRAY=()
-    eval "for command in $line; do TEMP_ARRAY+=( \"\$command\" ); done"
-    ps -p ${TEMP_ARRAY[0]} > /dev/null && RUNNING_TASKS+=( "${TEMP_ARRAY[0]}" "${TEMP_ARRAY[1]}" )
-  done < "$FILE_TASKS_RUNNING"
-
-  > "$FILE_TASKS_RUNNING"
-  for (( i=0; i<$((${#RUNNING_TASKS[@]}/2)); i++ ))
-  do
-    echo "${RUNNING_TASKS[$(($i*2))]} ${RUNNING_TASKS[$(($i*2+1))]}" >> "$FILE_TASKS_RUNNING"
-  done
-
-  if [ "$((${#RUNNING_TASKS[@]}%2))" -gt "0" ]; then
-    echo "[ERROR] An error was found in the number of parameters in the file containing the running tasks!"
-    exit 4
   fi
 fi
 
@@ -400,9 +430,9 @@ add_function ()
   TASKS+=( "$5" )
   TASKS+=( "$TWO_DIRECTIONS" )
 
-  echo "${TASKS[$(($NUMBER*6))]} ${TASKS[$(($NUMBER*6+1))]} \"${TASKS[$(($NUMBER*6+2))]}\" \"${TASKS[$(($NUMBER*6+3))]}\" ${TASKS[$(($NUMBER*6+4))]} ${TASKS[$(($NUMBER*6+5))]}" >> "$FILE_TASKS"
+  echo "${TASKS[$(($NUMBER*6))]} ${TASKS[$(($NUMBER*6+1))]} \"${TASKS[$(($NUMBER*6+2))]}\" \"${TASKS[$(($NUMBER*6+3))]}\" ${TASKS[$(($NUMBER*6+4))]} ${TASKS[$(($NUMBER*6+5))]}" >> "$FILE_TASKS" || ERROR=true
 
-  if [ $? ]; then 
+  if [[ "$ERROR" == "false" ]]; then 
     echo "[INFO] New $TASK_TYPE task created with ID: $MAXIMUM"
   else
     echo "[ERROR] An error occurred while adding $TASK_TYPE task to file!"
@@ -598,13 +628,24 @@ create_new_task ()
 
   if [[ -e "$FILE_TASKS_LOGS" ]]; then
     if [[ ! -w "$FILE_TASKS_LOGS" ]]; then
-      echo "[ERROR] $SCRIPT_NAME does not have permission to write to: $FILE_TASKS_LOGS! The task has not been started!"
+      echo "[ERROR] $SCRIPT_NAME does not have permission to write to: $FILE_TASKS_LOGS! Task with ID $1 has not been started!"
       exit 21
     fi
   fi
 
   while true; \
   do \
+    if [[ -e "$FILE_TASKS_LOGS" ]]; then \
+      if [[ ! -w "$FILE_TASKS_LOGS" ]]; then \
+        echo "[ERROR] $SCRIPT_NAME does not have permission to write to: $FILE_TASKS_LOGS! The $TASK_TYPE task with ID $1 has been stopped!"; \
+        exit 21; \
+      fi; \
+    else \
+      if [[ ! -w "$FILE_TASKS_LOGS_DIR" ]]; then \
+        echo "[ERROR] $SCRIPT_NAME does not have permission to write to the folder containing logs of running tasks: $FILE_TASKS_LOGS_DIR! The $TASK_TYPE task with ID $1 has been stopped!"; \
+        exit 22; \
+      fi; \
+    fi; \
     SUCCESS=false; \
     if [[ -f "$SOURCE" || -d "$SOURCE" ]] && [[ -f "$DESTINATION" || -d "$DESTINATION" || "$CHECK_IF_DESTINATION_EXISTS" == "false" ]]; then \
       if [[ "$TASK_TYPE" =~ ^mirror$ ]]; then \
@@ -626,13 +667,12 @@ create_new_task ()
 
   TASK_PROCESS_ID=$!
   RUNNING_TASKS+=( "$TASK_PROCESS_ID" "$1" )
-  echo "$TASK_PROCESS_ID $1" >> "$FILE_TASKS_RUNNING"
+  echo "$TASK_PROCESS_ID $1" >> "$FILE_TASKS_RUNNING" && SUCCESS=true || SUCCESS=false
 
-  if [ $? ]; then 
+  if [[ "$SUCCESS" == "true" ]]; then 
     echo "[INFO] Task with ID $1 started with process ID: $TASK_PROCESS_ID"
   else
-    kill $TASK_PROCESS_ID
-    echo "[ERROR] An error occurred while adding a running $TASK_TYPE task ID $1 with process ID $TASK_PROCESS_ID to a file containing a list of running copy tasks! The process has been stopped!"
+    ps -p "$1" > /dev/null && kill $TASK_PROCESS_ID && echo "[ERROR] An error occurred while adding a running $TASK_TYPE task ID $1 with process ID $TASK_PROCESS_ID to a file containing a list of running copy tasks! The process has been stopped!" || echo "[ERROR] An error occurred while adding a running $TASK_TYPE task ID $1 with process ID $TASK_PROCESS_ID to a file containing a list of running copy tasks! The process started but an error occurred while trying to stop!"
     exit 22
   fi
 }
@@ -763,9 +803,9 @@ stop_function ()
     if [[ "$2" == "$TASK_ID" ]] || [[ "$2" =~ ^all$ ]]; then
       for (( j=0; j<$((${#TASKS[@]}/6)); j++ ))
       do
-        if [[ "${RUNNING_TASKS[$(($i*2+1))]}" == "${TASKS[$(($j*6))]}" ]]; then
+        if [[ "$TASK_ID" == "${TASKS[$(($j*6))]}" ]]; then
           if ([ "$#" -eq "3" ] && [[ "$3" == "${TASKS[$(($j*6+1))]}" ]]) || [ "$#" -eq "2" ]; then
-            TASK_TYPE=" ${TASKS[$(($2*6+1))]}"
+            TASK_TYPE=" ${TASKS[$(($j*6+1))]}"
 
             kill $PROCESS_ID || SUCCESS=false
 
