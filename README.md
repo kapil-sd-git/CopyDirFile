@@ -9,7 +9,13 @@
   
   If you are copying files between two folders and you for example adding one file to source folder and another to destination folder and you want the copying to be done in two directions, you do not have to create two copy tasks. All you have to do is type the optional *two_directions* argument as `true` at the end of the `add` command. This works only with copy tasks.  
   
-  Logs of running copy/mirror tasks are created in the folder intended for this (the name of the variable that stores the folder location is in the section below). Each file created corresponds to one copy/mirror task ID. The file name syntax is: `Task_<task_ID>.log`
+  Logs of running copy/mirror tasks are created in the folder intended for this (the name of the variable that stores the folder location is in the section below). Each file created corresponds to one copy/mirror task ID. The file name syntax is: `Task_<task_ID>.log`  
+  
+  To access the script from any location, you can copy it to `/usr/bin/` folder (example shown in Code Examples section).  
+  
+  If you want the given copy or mirror task to be started automatically after specific user logs in, you can do it by adding the start command to `~/.profile` file.  
+  
+  Script written and tested on Ubuntu 18.04  
   
 ## You use it at your own risk
   I am not responsible for any damage or loss of data suffered as a result of using this program.   
@@ -103,4 +109,10 @@
   ```sh
   $ ./CopyDirFile.sh del 2
 [INFO] Deleted copy task with ID: 2
+  ```
+  
+  If you want to access the script from any location, you can copy it to the folder provided in this example and name it as you want it to be called. In this example, the copied script will be named `cdf`:
+  
+  ```sh
+  $ sudo cp ~/CopyDirFile.sh /usr/bin/cdf
   ```
