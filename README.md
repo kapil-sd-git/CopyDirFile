@@ -1,6 +1,6 @@
 # CopyDirFile
 ## Description and basic information
- [Bash] CopyDirFile is used to create copy or mirror tasks for copying or replicating files or folders to a given location every specified time period.  
+ [Bash] CopyDirFile is used to create copy or mirror tasks for copying or replicating files or folders to a given location every specified time period. 
  
   The script allows you to easily add copy/mirror tasks that run in the background.  
   Mirror task type allows you to replicates the contents of the source to the destination path, which means that when you delete an item from the source, it will also be deleted in the target directory.  
